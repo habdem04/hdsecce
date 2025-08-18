@@ -1,5 +1,5 @@
-app_name = "hdsec"
-app_title = "hdsec"
+app_name = "hdsecce"
+app_title = "hdsecce"
 app_publisher = "HD"
 app_description = "HD Security for ERP System"
 app_email = "habdem2003@gmail.com"
