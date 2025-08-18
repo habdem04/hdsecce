@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:pick_list_user",
+ "creation": "2025-06-17 04:19:56.292123",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "pick_list_user"
+ ],
+ "fields": [
+  {
+   "fieldname": "pick_list_user",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Pick List User",
+   "reqd": 1,
+   "unique": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-17 04:21:07.496460",
+ "modified_by": "Administrator",
+ "module": "hdsec",
+ "name": "Pick List User",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
