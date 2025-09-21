@@ -260,6 +260,18 @@ doc_events = {
          "on_submit": "hdsec.material_requisition.on_submit_material_requisition"
     },"Stock Entry": {
        "validate": "hdsec.workflow_updates.update_SE_workflow_fields"
-     
+     },"Stock Entry": {
+       "validate": "hdsec.workflow_updates.update_SE_workflow_fields"
+     },"Sales Order": {
+       "validate": "hdsec.workflow_updates.update_Sales_Order_workflow_fields"
+    },"Purchase Receipt": {
+       "validate": "hdsec.workflow_updates.update_GRN_workflow_fields"
+    },"Purchase Order": {
+       "validate": "hdsec.workflow_updates.update_PO_workflow_fields",
+       "on_submit": "hdsec.purchase_order.on_submit_po_update_fp_status"
+    }, "Payment Entry": {
+        "on_submit": "hdsec.utils.update_sales_order_deposited_amount",
+        "on_cancel": "hdsec.utils.update_sales_order_deposited_amount"
     }
+
 }

@@ -214,9 +214,9 @@ def update_SE_workflow_fields(doc, method):
             doc.set("custom_prepared_by", employee_full_name)
             doc.set("custom_prepared_date", current_datetime)
             doc.set("custom_prepared_by_signature", employee_signature)
-        else:
-            frappe.msgprint("Update skipped for 'Approved': Insufficient role (requires Stock User).")
-            return
+        # else:
+        #     frappe.msgprint("Update skipped for 'Pending Approval': Insufficient role (requires Stock User).")
+        #     return
 
 
  # Process based on workflow state.
@@ -290,6 +290,66 @@ def update_PO_workflow_fields(doc, method):
     using only allowed roles defined in the workflow image/table.
     
     Workflow States & Allowed Roles:
+      - Approved:                Allowed Role: GM
+      - Rejected:                Allowed Role: GM
+      - Pending Approval (Review): Allowed Role: Stock Manager
+      - Cancelled:               Allowed Role: GM
+    """
+    current_user = frappe.session.user
+    current_datetime = now()
+
+    # Load the Employee Signature record for the current user.
+    try:
+        employee_signature_doc = frappe.get_doc("Employee Signature", {"user": current_user})
+    except Exception as e:
+        frappe.throw("Employee Signature record not found for the current user.")
+
+    # Retrieve employee details.
+    employee_full_name = employee_signature_doc.get("full_name") or current_user
+    employee_signature = employee_signature_doc.get("signature")  # Ensure this field exists
+
+    # Get the current user's roles.
+    user_roles = frappe.get_roles(current_user)
+    
+    # Helper function to check if the current user has any of the required roles.
+    def has_role(required_roles):
+        return any(role in user_roles for role in required_roles)
+    
+     # Process based on workflow state.
+    if doc.workflow_state == "Pending Approval":
+        # Row 1: From Pending Approval to Approved requires Stock User.
+        if has_role(["Purchase Manager"]):
+            doc.set("custom_prepared_by_document_status", doc.workflow_state)
+            doc.set("custom_prepared_by", employee_full_name)
+            doc.set("custom_prepared_date", current_datetime)
+            doc.set("custom_prepared_by_signature", employee_signature)
+        else:
+            frappe.msgprint("Update skipped for 'Pending Approved': Insufficient role (requires Purchase User).")
+            return
+
+
+    # Process based on workflow state.
+    if doc.workflow_state == "Approved" or doc.workflow_state == "Rejected":
+        # Row 1: From Pending Approval to Approved requires Purchase User.
+        if has_role(["GM"]):
+            doc.set("custom_approval_document_status", doc.workflow_state)
+            doc.set("custom_document_approved_by", employee_full_name)
+            doc.set("custom_approval_date", current_datetime)
+            doc.set("custom_approver_signature", employee_signature)
+        else:
+            frappe.msgprint("Update skipped for 'Approved': Insufficient role (requires Purchase Manager.")
+            return
+
+    
+
+
+
+def update_GRN_workflow_fields(doc, method):
+    """
+    Update Stock Entry  custom fields based on the current workflow state,
+    using only allowed roles defined in the workflow image/table.
+    
+    Workflow States & Allowed Roles:
       - Approved:                Allowed Role: Stock User
       - Rejected:                Allowed Role: Purchase Manager
       - Pending Approval (Review): Allowed Role: Stock User
@@ -318,54 +378,110 @@ def update_PO_workflow_fields(doc, method):
         return any(role in user_roles for role in required_roles)
     
      # Process based on workflow state.
-    if doc.workflow_state == "Pending Approval":
+    if has_role(["Stock User","Material Request Issuer"]):
+        if doc.workflow_state == "Purchase Received（采购收货)" :
         # Row 1: From Pending Approval to Approved requires Stock User.
-        if has_role(["Purchase User"]):
-            doc.set("custom_prepared_by_document_status", doc.workflow_state)
-            doc.set("custom_prepared_by", employee_full_name)
-            doc.set("custom_prepared_date", current_datetime)
-            doc.set("custom_prepared_by_signature", employee_signature)
-        else:
-            frappe.msgprint("Update skipped for 'Approved': Insufficient role (requires Purchase User).")
-            return
+        
+            doc.set("custom_received_by_document_status", doc.workflow_state)
+            doc.set("custom_received_by", employee_full_name)
+            doc.set("custom_received_by_date", current_datetime)
+            doc.set("custom_received_by_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Purchase Reipt or GRN': Insufficient role (requires Stock User).")
+        #     return
 
+    if has_role(["Purchase User","Purchase Manager"]):
+        if doc.workflow_state == "Purchase Delivered【采购交付】" :
+        # Row 1: From Pending Approval to Approved requires Stock User.
+        
+            doc.set("custom_delivered_by_document_status", doc.workflow_state)
+            doc.set("custom_delivered_by", employee_full_name)
+            doc.set("custom_delivered_date", current_datetime)
+            doc.set("custom_delivered_by_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Purchase Receipt or GRN Delivery': Insufficient role (requires Stock User).")
+        #     return
 
-    # Process based on workflow state.
-    if doc.workflow_state == "Approved":
-        # Row 1: From Pending Approval to Approved requires Purchase User.
-        if has_role(["Purchase Manager"]):
-            doc.set("custom_approval_document_status", doc.workflow_state)
-            doc.set("custom_document_approved_by", employee_full_name)
-            doc.set("custom_approval_date", current_datetime)
-            doc.set("custom_approver_signature", employee_signature)
-        else:
-            frappe.msgprint("Update skipped for 'Approved': Insufficient role (requires Purchase Manager.")
-            return
+ # Process Approveed by Store Head/Store Checker Role
+    if doc.workflow_state == "✅Purchase Receiving Approved（采购收货已批准)" or doc.workflow_state == "❌ Purchase Receiving Rejected (采购收货被拒绝)":
+        # Row 1: From Pending Approval to Approved requires Stock User.
+        if has_role(["Stock Manager","Store Checker"]):
+            frappe.msgprint("test")
+            doc.set("custom_approved_by_document_status", doc.workflow_state)
+            doc.set("custom_approved_by", employee_full_name)
+            doc.set("custom_approved_by_date", current_datetime)
+            doc.set("custom_approved_by_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Approval': Insufficient role (requires Stock User).")
+        #     return
 
-    elif doc.workflow_state == "Rejected":
-        # Row 2: From Pending Approval to Rejected requires Purchase Manager.
-        if has_role(["Purchase Manager"]):
-            doc.set("custom_approval_document_status", doc.workflow_state)
-            doc.set("custom_document_approved_by", employee_full_name)
-            doc.set("custom_approval_date", current_datetime)
-            doc.set("custom_approver_signature", employee_signature)
-        else:
-            frappe.msgprint("Update skipped for 'Rejected': Insufficient role (requires Purchase Manager).")
-            return
+   
 
+   
+def update_Sales_Order_workflow_fields(doc, method):
+    """
+    Update Stock Entry  custom fields based on the current workflow state,
+    using only allowed roles defined in the workflow image/table.
     
-    elif doc.workflow_state == "Cancelled":
-        # Row 7: For Cancelled state, allowed role is Purchase Manager.
-        if has_role(["Purchase Manager"]):
-            doc.set("custom_approval_document_status", doc.workflow_state)
-            doc.set("custom_document_approved_by", employee_full_name)
-            doc.set("custom_approval_date", current_datetime)
-            doc.set("custom_approver_signature", employee_signature)
-        else:
-            frappe.msgprint("Update skipped for 'Cancelled': Insufficient role (requires Purchase Manager).")
-            return
+    Workflow States & Allowed Roles:
+      - Approved:                Allowed Role: Stock User
+      - Rejected:                Allowed Role: Purchase Manager
+      - Pending Approval (Review): Allowed Role: Stock User
+      - Unreceived By Requestor: Allowed Role: Requester
+      - Received By Requestor:   Allowed Roles: Requester or Report Manager
+      - Cancelled:               Allowed Role: Purchase Manager
+    """
+    current_user = frappe.session.user
+    current_datetime = now()
 
-    frappe.logger().info(
-        f"[Workflow Update] Purchase Order '{doc.name}' updated to state '{doc.workflow_state}' by '{employee_full_name}'"
-    )
+    # Load the Employee Signature record for the current user.
+    try:
+        employee_signature_doc = frappe.get_doc("Employee Signature", {"user": current_user})
+    except Exception as e:
+        frappe.throw("Employee Signature record not found for the current user.")
 
+    # Retrieve employee details.
+    employee_full_name = employee_signature_doc.get("full_name") or current_user
+    employee_signature = employee_signature_doc.get("signature")  # Ensure this field exists
+
+    # Get the current user's roles.
+    user_roles = frappe.get_roles(current_user)
+    
+    # Helper function to check if the current user has any of the required roles.
+    def has_role(required_roles):
+        return any(role in user_roles for role in required_roles)
+    
+     # Process based on workflow state.
+    if has_role(["Sales User","Sales Manager"]):
+        if doc.workflow_state == "⏰Pending Checking/待校验" :     
+            doc.set("custom_prepared_by", employee_full_name)
+            doc.set("custom_prepared_by_date", current_datetime)
+            doc.set("custom_prepared_by_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Purchase Reipt or GRN': Insufficient role (requires Stock User).")
+        #     return
+
+    if has_role(["Sales Manager"]):
+        if doc.workflow_state == "👤Pending Verification/核准" :
+            doc.set("custom_checked_by", employee_full_name)
+            doc.set("custom_checked_by_date", current_datetime)
+            doc.set("custom_checked_by_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Purchase Receipt or GRN Delivery': Insufficient role (requires Stock User).")
+        #     return
+
+ # Process Approveed by Store Head/Store Checker Role
+    if has_role(["Chinese Authorizer","GM"]):
+        if doc.workflow_state == "🔄Verified/已验证" or doc.workflow_state == "❌Did Not Pass Verification/未通过验证":    
+            doc.set("custom_verified_by_chinese", employee_full_name)
+            doc.set("custom_verified_by_chinese_date", current_datetime)
+            doc.set("custom_verified_by_chinese_signature", employee_signature)
+        # else:
+        #     frappe.msgprint("Update skipped for 'Approval': Insufficient role (requires Stock User).")
+        #     return
+
+    if has_role(["GM"]):
+        if doc.workflow_state == "✅Approved/已批准" or doc.workflow_state == "❌Rejected/已拒绝"  :
+            doc.set("custom_approved_by", employee_full_name)
+            doc.set("custom_approved_by_date", current_datetime)
+            doc.set("custom_approved_by_signature", employee_signature)
